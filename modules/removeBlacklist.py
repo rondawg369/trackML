@@ -22,32 +22,33 @@ def removeBlacklist(path='../input/', file='blacklist_training.zip'):
 
     files = get_zips(path)
     print(files)
-    files = ['train_sample.zip']  # only for testing
     blackList_ids, blackList_data = get_blacklist(path, file)
     print(blackList_ids)
     # Iterate through each of the zip files
     for f in files:
         # Iterate through each event in the file
-        for event_id, hits, cells, particles, truth in load_dataset(path + f):
-            print("Event ID:", event_id)
-            if event_id in blackList_ids:
-                print("This event contains blacklisted data")
-                bl_hits, bl_particles = blackList_data[blackList_ids.index(event_id)]
-                for hit in bl_hits['hit_id']:
-                    hits.drop(hits[hits['hit_id'] == hit].index, inplace=True)
-                    cells.drop(cells[cells['hit_id'] == hit].index, inplace=True)
-                    truth.drop(truth[truth['hit_id'] == hit].index, inplace=True)
-                for particle in bl_particles['particle_id']:
-                    particles.drop(particles[particles['particle_id'] == particle].index, inplace=True)
-                    truth.drop(truth[truth['particle_id'] == particle].index, inplace=True)
-            hits.to_csv(path + 'train_sample/event00000' + str(event_id) + '-hits.csv', index=False)
-            cells.to_csv(path + 'train_sample/event00000' + str(event_id) + '-cells.csv', index=False)
-            particles.to_csv(path + 'train_sample/event00000' + str(event_id) + '-particles.csv', index=False)
-            truth.to_csv(path + 'train_sample/event00000' + str(event_id) + '-truth.csv', index=False)
+        dir_name = os.path.splitext(f)[0]
+        with zipfile.ZipFile(path + 'clean_' + f, mode='w', compression=zipfile.ZIP_DEFLATED) as clean_zip:
+
+            for event_id, hits, cells, particles, truth in load_dataset(path + f):
+                print("Event ID:", event_id)
+                if event_id in blackList_ids:
+                    print("This event contains blacklisted data")
+                    bl_hits, bl_particles = blackList_data[blackList_ids.index(event_id)]
+                    for hit in bl_hits['hit_id']:
+                        hits.drop(hits[hits['hit_id'] == hit].index, inplace=True)
+                        cells.drop(cells[cells['hit_id'] == hit].index, inplace=True)
+                        truth.drop(truth[truth['hit_id'] == hit].index, inplace=True)
+                    for particle in bl_particles['particle_id']:
+                        particles.drop(particles[particles['particle_id'] == particle].index, inplace=True)
+                        truth.drop(truth[truth['particle_id'] == particle].index, inplace=True)
+                clean_zip.writestr(dir_name + '\event00000' + str(event_id) + '-hits.csv', hits.to_csv(index=False))
+                clean_zip.writestr(dir_name + '\event00000' + str(event_id) + '-cells.csv', cells.to_csv(index=False))
+                clean_zip.writestr(dir_name + '\event00000' + str(event_id) + '-particles.csv',
+                                   particles.to_csv(index=False))
+                clean_zip.writestr(dir_name + '\event00000' + str(event_id) + '-truth.csv', truth.to_csv(index=False))
 
 
-# TODO - save all of the newly created files back into their compressed folders
-# TODO - cleanup all of the paths etc.
 
 def get_zips(path):
     """ This function returns a list of the training zip files in the directory given by path
